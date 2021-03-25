@@ -1,0 +1,262 @@
+#include<stdio.h>
+#include<stdlib.h>
+#include<conio.h>
+#include<stdlib.h>
+#pragma warning(disable : 4996)
+
+//フィールドの範囲
+#define XPOSITION 30
+#define YPOSITION 20
+
+//フィールドに表示させる配列
+int myPosition[XPOSITION][YPOSITION] = { 0 };
+int framePosition[XPOSITION][YPOSITION] = { 0 };
+int enemyPosition[XPOSITION][YPOSITION] = { 0 };
+int attackPosition[XPOSITION][YPOSITION] = { 0 };
+
+//ビームの判定の為に使う配列
+int hitBeemNumberX[10] = { 0 };
+int hitEvenNumberX[10] = { 0 };
+int hitOddNumberX[10] = { 0 };
+
+//カウントに使う配列
+int hitAttack = 0;
+int enemyPositionY = 0;
+int countAttack= 0;
+
+//関数宣言
+void hitTest();
+void printData();
+void fieldSetteing();
+void attackStetting(int x, int y);
+void winningTest();
+void monsterSetting();
+void printStart();
+
+
+int main(void) {
+
+	int x = 14, y = 19;/*自機を中心に設置させる*/
+	char input='NULL';
+	
+	myPosition[x][y] = 1;
+	printStart();
+
+	while (1) {
+
+		system("cls");//画面クリア
+
+		fieldSetteing();//フィールド設定
+
+		
+		if (kbhit()/*キー入力されたとき*/) {
+
+			input = getch();//入力されたキーを取得
+
+			myPosition[x][y] = 0;
+
+			switch (input) {
+
+			case 'M'://右
+				x += 1;
+				if (x == 29) x--;//自機が壁に当たったら
+				break;
+			case 'K'://左
+				x -= 1;
+				if (x == 1) x++;//自機が壁に当たったら
+				break;
+
+			case 'H'://上
+				countAttack= 1;
+				break;
+
+			case 'q':
+				exit(1);
+			}
+			myPosition[x][y] = 1;//
+		}
+		attackStetting(x, y);
+		hitTest();
+		monsterSetting();
+		printData();
+		winningTest();
+
+	}
+
+	return 0;
+}
+
+void printData() {
+	int i, j;
+
+	for (j = 0; j < YPOSITION; j++) {
+		for (i = 0; i < XPOSITION; i++) {
+
+			if (myPosition[i][j] == 1) printf("凸");
+			else if (framePosition[i][j] == 2)printf("|");
+			else if (enemyPosition[i][j] == 4) printf("Ω");
+			else if (attackPosition[i][j] == 3) printf("〇");//攻撃が横移動の時当たっても敵が表示される順番
+			else printf("　");
+
+		}
+		printf("\n");
+
+	}
+}
+
+
+void fieldSetteing() {
+	int i;
+	for (i = 0; i < YPOSITION; i++) {
+
+		framePosition[1][i] = 2;
+		
+		framePosition[29][i] = 2;
+
+	}
+}
+
+void attackStetting(int x, int y) {
+
+	static int attackX=0;  //while文でｘの値が変わってしまうため、attackXに入れる
+	static int count1 = 1;//どこにも干渉しないのでstaticでよい
+
+	if (count1 == 1) {
+		attackX = x;
+	}
+
+	if (countAttack== 1) {
+
+		attackPosition[attackX][y - count1] = 0;
+		count1++;
+		attackPosition[attackX][y - count1] = 3;
+	}
+
+	if (count1 == YPOSITION) {
+		attackPosition[attackX][y - count1] = 0;
+		count1 = 1;
+		countAttack= 0;
+
+	}
+}
+
+
+
+
+void monsterSetting() {
+
+	int i, j;
+	static int count = 0, count2 = 0;
+
+
+	count++;
+	count2++;
+
+	if (count <= 20) {
+		for (i = 5; i <= 24; i++) {
+			if (i % 2 == 0) {
+				enemyPosition[i][enemyPositionY] = 4;//敵設置
+				enemyPosition[i][enemyPositionY - 1] = 0;//下に下がったときの一段上の敵を消す
+			}
+			if (i % 2 == 1)enemyPosition[i][enemyPositionY] = 0;
+		
+			//敵の攻撃が当たっている座標には０を入れていく
+			for (j = 0; j < 10; j++) {
+				if (enemyPosition[hitBeemNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+				if (enemyPosition[hitEvenNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+				if (enemyPosition[hitOddNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+			}
+		}
+
+
+	}
+	else if (20 <= count <= 40) {
+
+		for (i = 5; i <= 24; i++) {
+			if (i % 2 == 0) enemyPosition[i][enemyPositionY] = 0;//ヨコ揺れ前敵リセット
+
+			if (i % 2 == 1) {
+				enemyPosition[i][enemyPositionY] = 4;//一マスずれに敵設置
+				enemyPosition[i][enemyPositionY - 1] = 0;//下に下がったときの一段上の敵を消す
+			}
+
+			//敵の攻撃が当たっている座標には０を入れていく
+			for (j = 0; j < 10; j++) {
+				if (enemyPosition[hitBeemNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+				if (enemyPosition[hitEvenNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+				if (enemyPosition[hitOddNumberX[j]][enemyPositionY] == 4)enemyPosition[i][enemyPositionY] = 0;
+			}
+		}
+
+	}
+	//countが４１になったら値を戻して敵の位置を戻す
+	if (count == 41) count = 0;
+
+	//count2が50になったとき１段下げる
+	if (count2 == 50) {
+
+		count2 = 0;
+		enemyPositionY++;
+
+	}
+}
+
+void hitTest() {
+	int i, j;
+	for (i = 0; i < YPOSITION; i++) {
+		for (j = 0; j < XPOSITION; j++) {
+			if (attackPosition[j][i] == 3 && enemyPosition[j][i] == 4) {  //敵と攻撃が同じ座標のとき
+				hitBeemNumberX[hitAttack] = j;					//ビームが当たった時のXPOSITION座標をもらう
+				if (j % 2 == 0) {
+					hitEvenNumberX[hitAttack] = j - 1;           //敵の横揺れ分のXPOSITION座標取得
+				}
+				else if (j % 2 == 1) {
+					hitOddNumberX[hitAttack] = j + 1;			 //敵の横揺れ分のXPOSITION座標取得
+				}
+				hitAttack++;								//配列一つ進める
+			}
+		}
+	}
+
+
+}
+
+void winningTest() {
+	
+	if (enemyPositionY == 18) {			//enemyPositionY==18の時敵が自機に迫り切っているので負け
+		printf("\n\n\n\n\n**************YOU LOSE**************\n\n\n\n\n");
+		system("pause");
+		exit(1);
+	}
+	if (hitAttack==10) {			//hitAttackは敵とビームが当たると１ずつ足されているので、１０の時は敵が全滅している
+		printf("\n\n\n\n\n**************YOU WIN**************\n\n\n\n\n\n");
+		system("pause");
+		exit(1);
+	}
+}
+
+
+void printStart() {
+
+	FILE* fp;
+	char start;
+
+	fp = fopen("start.txt", "r");
+	if (fp == NULL) {
+		printf("ファイルオープンエラー。\n");
+		return -1;
+	}
+	while ((start = fgetc(fp)) != EOF) {
+		putchar(start);
+	}
+
+	fclose(fp);
+
+
+
+	printf("\n\n\n\n\n\n\n\t\t\tゲームをスタート(Enterキーを押してね)\n");
+	getchar();//キー入力を待つ。
+
+	
+
+}
